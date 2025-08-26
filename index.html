@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Private Notes & PDFs</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f0f8ff;
+    margin: 0; padding: 20px;
+  }
+  h1 {
+    text-align: center;
+  }
+  #notesContainer {
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 20px;
+  }
+  .note {
+    background: white;
+    padding: 12px;
+    margin-bottom: 14px;
+    border-radius: 6px;
+    box-shadow: 1px 1px 5px #ccc;
+  }
+  .note h3 {
+    margin-top: 0;
+  }
+  .note p {
+    white-space: pre-wrap;
+  }
+  .file-link {
+    display: block;
+    margin-top: 8px;
+    color: #007bff;
+    text-decoration: underline;
+  }
+  #addNoteBtn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+  }
+  #modalContent {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+  }
+  #modalContent label {
+    display: block;
+    margin: 12px 0 6px 0;
+  }
+  #modalContent input[type="text"],
+  #modalContent textarea {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  #modalContent textarea {
+    resize: vertical;
+  }
+  #modalContent input[type="file"] {
+    margin-top: 6px;
+  }
+  #modalButtons {
+    margin-top: 16px;
+    text-align: right;
+  }
+  #modalButtons button {
+    padding: 8px 14px;
+    margin-left: 10px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+  }
+  #saveBtn {
+    background-color: #28a745;
+    color: white;
+  }
+  #cancelBtn {
+    background-color: #dc3545;
+    color: white;
+  }
+  #searchInput {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #aaa;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+
+<h1>Private Notes & Model Papers</h1>
+
+<button id="addNoteBtn">Add New Note or PDF</button>
+<input type="text" id="searchInput" placeholder="Search notes..." />
+
+<div id="notesContainer"></div>
+
+<!-- Modal for adding note -->
+<div id="modal">
+  <div id="modalContent">
+    <h2>Add New Note or PDF</h2>
+    <label for="titleInput">Title</label>
+    <input type="text" id="titleInput" placeholder="Enter title" />
+    <label for="textInput">Note Content (leave empty if uploading PDF)</label>
+    <textarea id="textInput" rows="4" placeholder="Enter note content here"></textarea>
+    <label for="fileInput">Or Upload PDF File</label>
+    <input type="file" id="fileInput" accept="application/pdf" />
+    <div id="modalButtons">
+      <button id="cancelBtn">Cancel</button>
+      <button id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const notesContainer = document.getElementById('notesContainer');
+  const addNoteBtn = document.getElementById('addNoteBtn');
+  const searchInput = document.getElementById('searchInput');
+
+  const modal = document.getElementById('modal');
+  const titleInput = document.getElementById('titleInput');
+  const textInput = document.getElementById('textInput');
+  const fileInput = document.getElementById('fileInput');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const saveBtn = document.getElementById('saveBtn');
+
+  let notes = JSON.parse(localStorage.getItem('notes')) || [];
+
+  function saveNotes() {
+    localStorage.setItem('notes', JSON.stringify(notes));
+  }
+
+  function renderNotes(filter = '') {
+    notesContainer.innerHTML = '';
+    const lowerFilter = filter.toLowerCase();
+    const filtered = notes.filter(note =>
+      (note.title && note.title.toLowerCase().includes(lowerFilter)) ||
+      (note.content && note.content.toLowerCase().includes(lowerFilter))
+    );
+    if(filtered.length === 0) {
+      notesContainer.innerHTML = '<p>No notes found.</p>';
+      return;
+    }
+    filtered.forEach(note => {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'note';
+      const titleEl = document.createElement('h3');
+      titleEl.textContent = note.title || '(No Title)';
+      noteEl.appendChild(titleEl);
+      if(note.content) {
+        const contentEl = document.createElement('p');
+        contentEl.textContent = note.content;
+        noteEl.appendChild(contentEl);
+      }
+      if(note.fileName && note.fileData) {
+        const linkEl = document.createElement('a');
+        linkEl.href = note.fileData;
+        linkEl.target = '_blank';
+        linkEl.className = 'file-link';
+        linkEl.textContent = `View PDF: ${note.fileName}`;
+        noteEl.appendChild(linkEl);
+      }
+      notesContainer.appendChild(noteEl);
+    });
+  }
+
+  function openModal() {
+    modal.style.display = 'flex';
+    titleInput.value = '';
+    textInput.value = '';
+    fileInput.value = '';
+    titleInput.focus();
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  addNoteBtn.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+
+  saveBtn.addEventListener('click', () => {
+    const title = titleInput.value.trim();
+    const content = textInput.value.trim();
+    const file = fileInput.files[0];
+
+    if(!title) {
+      alert('Please enter a title.');
+      return;
+    }
+    if(!content && !file) {
+      alert('Please add text content or upload a PDF file.');
+      return;
+    }
+
+    if(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        notes.push({
+          title,
+          fileName: file.name,
+          fileData: reader.result
+        });
+        saveNotes();
+        renderNotes(searchInput.value);
+        closeModal();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      notes.push({title, content});
+      saveNotes();
+      renderNotes(searchInput.value);
+      closeModal();
+    }
+  });
+
+  searchInput.addEventListener('input', () => {
+    renderNotes(searchInput.value);
+  });
+
+  renderNotes();
+</script>
+
+</body>
+</html>
