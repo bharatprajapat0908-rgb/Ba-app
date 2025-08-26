@@ -35,10 +35,11 @@
     white-space: pre-wrap;
   }
   .file-link {
-    display: block;
+    display: inline-block;
     margin-top: 8px;
     color: #007bff;
     text-decoration: underline;
+    cursor: pointer;
   }
   #addNoteBtn {
     background-color: #007bff;
@@ -183,8 +184,10 @@
         const linkEl = document.createElement('a');
         linkEl.href = note.fileData;
         linkEl.target = '_blank';
+        linkEl.rel = 'noopener noreferrer';
+        linkEl.download = note.fileName;
         linkEl.className = 'file-link';
-        linkEl.textContent = `View PDF: ${note.fileName}`;
+        linkEl.textContent = `View/Download PDF: ${note.fileName}`;
         noteEl.appendChild(linkEl);
       }
       notesContainer.appendChild(noteEl);
@@ -249,4 +252,5 @@
 </script>
 
 </body>
-</html>
+                                   </html>
+  
