@@ -152,10 +152,23 @@
   const cancelBtn = document.getElementById('cancelBtn');
   const saveBtn = document.getElementById('saveBtn');
 
-  let notes = JSON.parse(localStorage.getItem('notes')) || [];
+  // Retrieve stored notes or initialize array
+  let notes = [];
+
+  try {
+    notes = JSON.parse(localStorage.getItem('notes')) || [];
+  } catch (e) {
+    console.error('Error reading notes from localStorage:', e);
+    notes = [];
+  }
 
   function saveNotes() {
-    localStorage.setItem('notes', JSON.stringify(notes));
+    try {
+      localStorage.setItem('notes', JSON.stringify(notes));
+    } catch (e) {
+      alert('Error saving notes. Your local storage may be full or unavailable.');
+      console.error('Error saving notes to localStorage:', e);
+    }
   }
 
   function renderNotes(filter = '') {
@@ -182,11 +195,10 @@
       }
       if(note.fileName && note.fileData) {
         const linkEl = document.createElement('a');
-        linkEl.href = note.fileData;
+        linkEl.href = note.fileData;       // base64 URL
         linkEl.target = '_blank';
         linkEl.rel = 'noopener noreferrer';
-        // Removed download attribute for viewing only
-        // linkEl.download = note.fileName;
+        // Viewing only, so no download attribute here
         linkEl.className = 'file-link';
         linkEl.textContent = `View PDF: ${note.fileName}`;
         noteEl.appendChild(linkEl);
@@ -220,12 +232,15 @@
       return;
     }
     if(!content && !file) {
-      alert('Please add text content or upload a PDF file.');
+      alert('Please add note content or upload a PDF.');
       return;
     }
 
     if(file) {
       const reader = new FileReader();
+      reader.onerror = () => {
+        alert('Failed to read file. Please try again.');
+      };
       reader.onload = () => {
         notes.push({
           title,
